@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import List, Dict, Optional, Any, Tuple
-from rapidfuzz import process, fuzz
 
 from loaders.schema_loader import CodeRule
 from llm_providers.base import LLMClient
@@ -19,29 +18,17 @@ class ClassificationResult:
 
 def rank_candidates(text: str, rules: List[CodeRule], top_k: int = 15) -> List[CodeRule]:
     """
-    Rankt codes met fuzzy matching op basis van rijcontext; retourneert top_k CodeRule's.
+    Fuzzy matching UITGESCHAKELD: geef het volledige codeschema door.
+    We houden de functie-naam aan voor compatibiliteit met writers/excel_writer.py.
     """
-    corpus = {i: f"{r.code} {r.name} {r.description} {r.instructions}".strip()
-              for i, r in enumerate(rules)}
-    # WRatio is robuust voor volgorde/varianten
-    scored = process.extract(text or "", corpus, scorer=fuzz.WRatio, limit=top_k)
-    ids = [idx for _, _, idx in scored]
-    return [rules[i] for i in ids]
+    return list(rules)
 
 
 def build_row_text(context: Dict[str, Any]) -> str:
     """
-    Zet rijcontext om naar een platte tekst voor fuzzy match.
+    Niet gebruikt wanneer fuzzy uit staat; houden we aan voor compatibiliteit.
     """
-    parts = []
-    for k, v in context.items():
-        if v is None:
-            continue
-        sv = str(v).strip()
-        if not sv:
-            continue
-        parts.append(f"{k}: {sv}")
-    return " | ".join(parts)
+    return ""
 
 
 def pick_code_with_llm(
@@ -52,9 +39,6 @@ def pick_code_with_llm(
     user_prompt: str,
     temperature: float = 0.0
 ) -> ClassificationResult:
-    """
-    Roept de LLM aan en parse't het JSON-antwoord.
-    """
     raw = llm.classify(model=model, system_prompt=system_prompt, user_prompt=user_prompt, temperature=temperature)
     data = extract_first_json_block(raw) or {}
     code = data.get("code")
@@ -81,11 +65,10 @@ def pick_code_with_llm(
 
 def simple_rules_fallback(context: Dict[str, Any], rules: List[CodeRule]) -> ClassificationResult:
     """
-    Eenvoudige fallback zonder LLM:
-    - telt token-overlap tussen context en naam/beschrijving/instructies
-    - kiest de beste; bij geen overlap -> geen code + vraag om toelichting
+    Eenvoudige offline fallback blijft beschikbaar voor demo/no-API situaties.
+    (Geen fuzzy; alleen zeer simpele token-overlap.)
     """
-    text = (build_row_text(context) or "").lower()
+    text = " ".join(str(v).lower() for v in context.values() if v is not None)
     best: Optional[Tuple[CodeRule, int]] = None
 
     for r in rules:
