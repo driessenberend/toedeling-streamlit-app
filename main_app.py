@@ -21,22 +21,27 @@ with st.sidebar:
     provider = st.selectbox("LLM-provider", ["openai"], index=0, help="De architectuur is modulair: extra providers zijn eenvoudig toe te voegen.")
     model = st.text_input("Modelnaam", value="gpt-4o-mini")
     temperature = st.slider("Creativiteit (temperature)", 0.0, 1.0, 0.1, 0.1)
-    top_k = st.slider("Aantal kandidaat-codes naar het model", 5, 40, 15, 1)
+    # Fuzzy matching is UIT: geen top_k meer nodig in de UI.
     dry_run = st.checkbox("Offline modus (geen LLM — eenvoudige heuristiek)", value=False)
     max_preview = st.number_input("Max. rijen in preview (per tab)", min_value=5, max_value=200, value=30, step=5)
     language = st.selectbox("Taal van de prompts", ["nl", "en"], index=0)
     st.caption("OpenAI-sleutel wordt automatisch gelezen uit **st.secrets['OPENAI_API_KEY']** of de omgevingsvariabele **OPENAI_API_KEY**.")
+
+    st.info("ℹ️ Fuzzy matching is **uitgeschakeld**. Per rij wordt het **volledige codeschema** meegestuurd naar het model.", icon="ℹ️")
 
     st.subheader("Header-rij per tabblad (optioneel)")
     hr_pil = st.number_input("Oplegger PIL — header-rij", min_value=1, max_value=50, value=DEFAULT_HEADER_ROWS["oplegger pil"])
     hr_kos = st.number_input("Oplegger kosten — header-rij", min_value=1, max_value=50, value=DEFAULT_HEADER_ROWS["oplegger kosten"])
     hr_opb = st.number_input("Oplegger opbrengsten — header-rij", min_value=1, max_value=50, value=DEFAULT_HEADER_ROWS["oplegger opbrengsten"])
 
+# Omdat fuzzy uit staat, maakt top_k geen verschil meer; zet intern op 0.
+top_k = 0
+
 settings = AppSettings(
     provider_name=provider,
     model=model,
     temperature=temperature,
-    top_k_codes=top_k,
+    top_k_codes=top_k,   # wordt genegeerd door de no-fuzzy classifier
     dry_run=dry_run,
     max_rows_preview=max_preview,
     system_language=language,
@@ -78,7 +83,7 @@ if preview_btn or run_btn:
             provider_name=settings.provider_name,
             model=settings.model,
             temperature=settings.temperature,
-            top_k_codes=settings.top_k_codes,
+            top_k_codes=settings.top_k_codes,  # ok om door te geven; no-fuzzy negeert dit
             dry_run=settings.dry_run,
             language=settings.system_language,
         )
@@ -97,8 +102,9 @@ with st.expander("ℹ️ Uitleg & aannames"):
         """
 **Toelichting**
 
-- **Schema-detectie**: het codeschema wordt uit 3 tabbladen gelezen (formatie/kosten/opbrengsten). 
-- **Context**: per rij gebruikt de app alle beschikbare kolommen in het Oplegger-blad als context, exclusief de doelkolommen (Codering AI / Argumentatie AI / Opmerkingen…). Het model ziet daarnaast een *korte lijst* van top-\*k* kandidaat-codes op basis van fuzzy matching, wat de prompt compact houdt.
+- **Schema-detectie**: het codeschema wordt uit 3 tabbladen gelezen (formatie/kosten/opbrengsten).
+- **Context**: per rij gebruikt de app alle beschikbare kolommen in het Oplegger-blad als context (exclusief de doelkolommen).
+- **Volledig codeschema per rij**: fuzzy matching is uitgeschakeld; het **hele codeschema** wordt aan het model aangeboden voor maximale nauwkeurigheid.
 - **Uitvoer**: de 3 doelkolommen worden **aangemaakt** als ze ontbreken en anders **overschreven**. Andere data blijft ongewijzigd.
 - **Verduidelijkende vraag**: wordt alleen toegevoegd als de modelrespons die bevat, bijvoorbeeld bij onvoldoende context of wanneer de gekozen code expliciet een aanvullende vraag volgens het schema vereist.
 - **Offline modus**: zonder LLM (checkbox) wordt een eenvoudige, heuristische keuze gemaakt op basis van trefwoorden. Handig voor snelle demo's of als er (tijdelijk) geen API-sleutel beschikbaar is.
