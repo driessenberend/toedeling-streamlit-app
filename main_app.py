@@ -7,9 +7,9 @@ import streamlit as st
 from config import AppSettings, DEFAULT_HEADER_ROWS
 from writers.excel_writer import process_workbook
 
-st.set_page_config(page_title="Berenschot Benchmark Codering (PoC)", layout="wide")
+st.set_page_config(page_title="Berenschot Benchmark Toedeling (PoC)", layout="wide")
 
-st.title("🔎 Benchmark Codering met AI — Proof of Concept")
+st.title("🔎 Benchmark Toedeling met AI — Proof of Concept")
 
 st.markdown(
     "Upload hieronder **het codeschema** en **het klantbestand** (beide Excel). "
@@ -95,10 +95,9 @@ st.divider()
 with st.expander("ℹ️ Uitleg & aannames"):
     st.markdown(
         """
-**Belangrijke punten**
+**Toelichting**
 
-- **Modulair ontwerp**: de LLM-provider zit achter een interface (`llm_providers/base.py`). De OpenAI-implementatie staat in `llm_providers/openai_provider.py`. Een andere provider kan worden ingehangen door slechts één bestand toe te voegen of te wijzigen.
-- **Schema-detectie**: het codeschema wordt uit 3 tabbladen gelezen (formatie/kosten/opbrengsten). Kolommen als *Code*, *Naam/Omschrijving*, *Toelichting/Criteria/Instructies* en optioneel *Overhead* en *Verduidelijkingsvraag* worden flexibel gedetecteerd op basis van kolomnamen.
+- **Schema-detectie**: het codeschema wordt uit 3 tabbladen gelezen (formatie/kosten/opbrengsten). 
 - **Context**: per rij gebruikt de app alle beschikbare kolommen in het Oplegger-blad als context, exclusief de doelkolommen (Codering AI / Argumentatie AI / Opmerkingen…). Het model ziet daarnaast een *korte lijst* van top-\*k* kandidaat-codes op basis van fuzzy matching, wat de prompt compact houdt.
 - **Uitvoer**: de 3 doelkolommen worden **aangemaakt** als ze ontbreken en anders **overschreven**. Andere data blijft ongewijzigd.
 - **Verduidelijkende vraag**: wordt alleen toegevoegd als de modelrespons die bevat, bijvoorbeeld bij onvoldoende context of wanneer de gekozen code expliciet een aanvullende vraag volgens het schema vereist.
